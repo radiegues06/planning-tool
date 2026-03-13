@@ -271,8 +271,6 @@ with tab1:
                     )
 
 with tab2:
-    st.subheader("Capacity vs Demand")
-    
     if not edited_backlog_df.empty and not roadmap_df.empty:
         sprint_load_df_tab2 = calculate_sprint_load(roadmap_df, roadmap_df)
         

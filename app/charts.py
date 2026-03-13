@@ -200,6 +200,7 @@ def create_unified_load_chart(sprint_load_df, capacity_per_sprint, competencies)
                 pattern=dict(shape="/", fgcolor=color, bgcolor="rgba(255,255,255,0.1)")
             ),
             legendgroup=comp,
+            showlegend=False,
         ))
         
         # Demand bars (in front, filled)
@@ -210,6 +211,7 @@ def create_unified_load_chart(sprint_load_df, capacity_per_sprint, competencies)
             offsetgroup=comp, # Superimpose on capacity
             marker=dict(color=color, opacity=0.85),
             legendgroup=comp,
+            showlegend=False,
         ))
         
         # Bottleneck markers
@@ -234,6 +236,38 @@ def create_unified_load_chart(sprint_load_df, capacity_per_sprint, competencies)
                 showlegend=False,
                 offsetgroup=comp, # Keep aligned
             ))
+
+    # Add dummy traces for simplified legend
+    # 1. Competency Colors
+    for comp in competencies:
+        color = COMPETENCY_COLORS.get(comp, "#95a5a6")
+        fig.add_trace(go.Bar(
+            x=[None], y=[None],
+            name=comp,
+            marker=dict(color=color),
+            legendgroup="colors",
+            legendgrouptitle_text="Competencies" if comp == competencies[0] else None
+        ))
+        
+    # 2. Demand vs Capacity Styles
+    style_color = "rgba(100, 100, 100, 0.8)"
+    fig.add_trace(go.Bar(
+        x=[None], y=[None],
+        name="Demand",
+        marker=dict(color=style_color),
+        legendgroup="styles",
+        legendgrouptitle_text="Type"
+    ))
+    fig.add_trace(go.Bar(
+        x=[None], y=[None],
+        name="Capacity",
+        marker=dict(
+            color="rgba(0,0,0,0)",
+            line=dict(color=style_color, width=2),
+            pattern=dict(shape="/", fgcolor=style_color)
+        ),
+        legendgroup="styles"
+    ))
     
     fig.update_layout(
         barmode='group', # Groups the different 'offsetgroup's side-by-side
