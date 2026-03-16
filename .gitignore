@@ -1,0 +1,24 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environments
+venv/
+env/
+.venv/
+
+# Environment variables
+.env
+
+# Generated data
+planning_data.xlsx
+
+# Streamlit config/cache
+.streamlit/
+.pytest_cache/
+
+# IDEs and OS files
+.vscode/
+.idea/
+.DS_Store
