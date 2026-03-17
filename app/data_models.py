@@ -73,4 +73,4 @@ EFFORT_COLS = {
 # Milestones tab columns
 COL_MS_INDICATOR = "indicator"
 COL_MS_DATE = "date"
-COL_MS_TARGET = "target"  # string — can be percentage or free text
+COL_MS_TARGET = "target"

@@ -39,13 +39,7 @@ def load_data():
             backlog_df = pd.read_excel(xls, 'Backlog')
             vacations_df = pd.read_excel(xls, 'Vacations')
             sprints_df = pd.read_excel(xls, 'Sprints')
-            milestones_df = pd.read_excel(xls, 'Milestones') if 'Milestones' in xls.sheet_names else pd.DataFrame(columns=[COL_MS_INDICATOR, COL_MS_DATE, COL_MS_TARGET])
-        
-        # Ensure new columns exist
-        if COL_INDICATOR not in backlog_df.columns:
-            backlog_df[COL_INDICATOR] = INDICATORS[0]
-        if COL_EPIC not in backlog_df.columns:
-            backlog_df[COL_EPIC] = ""
+            milestones_df = pd.read_excel(xls, 'Milestones')
             
         # Fill NaN and fix types to avoid Streamlit errors
         backlog_df[COL_EPIC] = backlog_df[COL_EPIC].fillna("").astype(str)
@@ -223,6 +217,10 @@ with tab1:
                 r_col1, r_col2 = st.columns(2)
                 with r_col1:
                     r_ind_filter = st.multiselect("Filtrar Indicador do Roadmap", roadmap_df[COL_INDICATOR].unique(), default=roadmap_df[COL_INDICATOR].unique(), key="roadmap_ind_filter")
+                with r_col2:
+                    st.write("") # Vertical alignment
+                    st.write("") # Vertical alignment
+                    show_capacity_alerts = st.toggle("Exibir Alertas de Capacidade", value=False, key="roadmap_capacity_toggle")
                 
                 filtered_roadmap_df = roadmap_df[roadmap_df[COL_INDICATOR].isin(r_ind_filter)]
                 
@@ -230,13 +228,13 @@ with tab1:
                     # Calculate sprint load for capacity overlay
                     sprint_load_df = calculate_sprint_load(roadmap_df, roadmap_df)
                     
-                    gantt = create_gantt_chart(filtered_roadmap_df, sprint_load_df, capacity_per_sprint, edited_sprints_df, milestones_df=st.session_state.milestones_df)
+                    gantt = create_gantt_chart(filtered_roadmap_df, sprint_load_df, capacity_per_sprint, edited_sprints_df, milestones_df=st.session_state.milestones_df, show_alerts=show_capacity_alerts)
                     if gantt:
                         st.plotly_chart(gantt, use_container_width=True)
                 
                 st.divider()
                 
-                # Capacity vs Demand chart (moved from old Tab 2)
+                # Capacity vs Demand chart
                 st.subheader("Capacidade vs Demanda")
                 sprint_load_df_cap = calculate_sprint_load(roadmap_df, roadmap_df)
                 fig = create_unified_load_chart(sprint_load_df_cap, capacity_per_sprint, COMPETENCIES, edited_sprints_df)

@@ -61,7 +61,7 @@ def _get_overloaded_sprints(sprint_load_df, capacity_per_sprint):
                 break
     return overloaded
 
-def create_gantt_chart(roadmap_df, sprint_load_df=None, capacity_per_sprint=None, sprints_df=None, milestones_df=None):
+def create_gantt_chart(roadmap_df, sprint_load_df=None, capacity_per_sprint=None, sprints_df=None, milestones_df=None, show_alerts=True):
     """
     Creates a Gantt chart with indicator-based swim lanes.
     Y-axis shows Indicator names (one per group, vertically centered).
@@ -111,6 +111,19 @@ def create_gantt_chart(roadmap_df, sprint_load_df=None, capacity_per_sprint=None
     max_sprint = int(df[COL_END_SPRINT].max()) + 1
     all_sprints = list(range(1, max_sprint + 1))
     sprint_labels = _build_sprint_labels(sprints_df, all_sprints)
+    
+    # Add vertical sprint backgrounds and dashed lines
+    for i, s in enumerate(all_sprints):
+        if i % 2 == 0:
+            fig.add_vrect(
+                x0=s - 0.5, x1=s + 0.5,
+                fillcolor="rgba(0,0,0,0.04)",
+                line_width=0,
+                layer="below"
+            )
+        fig.add_vline(x=s - 0.5, line_dash="dash", line_color="rgba(0,0,0,0.1)", line_width=1, layer="below")
+    if all_sprints:
+        fig.add_vline(x=all_sprints[-1] + 0.5, line_dash="dash", line_color="rgba(0,0,0,0.1)", line_width=1, layer="below")
     
     # Add bars grouped by indicator
     bar_idx = 0
@@ -167,7 +180,7 @@ def create_gantt_chart(roadmap_df, sprint_load_df=None, capacity_per_sprint=None
         fig.add_hline(y=sep_pos, line_dash="dot", line_color="rgba(0,0,0,0.3)", line_width=1)
     
     # Add capacity overlay — red shading for overloaded sprints
-    if sprint_load_df is not None and capacity_per_sprint is not None:
+    if sprint_load_df is not None and capacity_per_sprint is not None and show_alerts:
         overloaded = _get_overloaded_sprints(sprint_load_df, capacity_per_sprint)
         for s in overloaded:
             fig.add_vrect(
@@ -292,6 +305,7 @@ def create_unified_load_chart(sprint_load_df, capacity_per_sprint, competencies,
             ),
             legendgroup=comp,
             showlegend=False,
+            hovertemplate="%{y:.0f}h<extra></extra>",
         ))
         
         # Demand bars (in front, filled)
@@ -303,6 +317,7 @@ def create_unified_load_chart(sprint_load_df, capacity_per_sprint, competencies,
             marker=dict(color=color, opacity=0.85),
             legendgroup=comp,
             showlegend=False,
+            hovertemplate="%{y:.0f}h<extra></extra>",
         ))
         
         # Bottleneck markers
