@@ -216,3 +216,46 @@ def calculate_sprint_load(roadmap_df, backlog_df):
         load_data.append(sprint_row)
         
     return pd.DataFrame(load_data)
+
+def date_to_sprint(date, sprints_df):
+    """
+    Maps a date to the sprint number it falls within.
+    If the date falls between sprints, returns the next sprint.
+    If after all sprints, returns the last sprint number.
+    If before all sprints, returns 1.
+    """
+    if sprints_df is None or sprints_df.empty:
+        return None
+    
+    date = pd.to_datetime(date).date() if not isinstance(date, pd.Timestamp) else date.date()
+    
+    for _, row in sprints_df.iterrows():
+        try:
+            s_num = int(row[COL_SPR_NUMBER])
+            s_start = pd.to_datetime(row[COL_SPR_START_DATE]).date()
+            s_end = pd.to_datetime(row[COL_SPR_END_DATE]).date()
+            if s_start <= date <= s_end:
+                return s_num
+        except Exception:
+            continue
+    
+    # Date is between or outside sprints — find the closest next sprint
+    best = None
+    for _, row in sprints_df.iterrows():
+        try:
+            s_num = int(row[COL_SPR_NUMBER])
+            s_start = pd.to_datetime(row[COL_SPR_START_DATE]).date()
+            if s_start >= date:
+                if best is None or s_num < best:
+                    best = s_num
+        except Exception:
+            continue
+    
+    if best is not None:
+        return best
+    
+    # After all sprints — return the last one
+    try:
+        return int(sprints_df[COL_SPR_NUMBER].max())
+    except Exception:
+        return 1

@@ -22,7 +22,7 @@ COL_INDICATOR = "indicator"
 COL_EPIC = "epic"
 COL_BUSINESS_VALUE = "business_value"
 
-INDICATORS = ["Conformidade", "Aderência", "Prontidão", "Should Cost"]
+INDICATORS = ["Conformidade", "Aderência", "Prontidão", "Should Cost", "Produtização"]
 COL_EFFORT_DE = "effort_DE"
 COL_EFFORT_DS = "effort_DS"
 COL_EFFORT_FE = "effort_FE"
@@ -69,3 +69,8 @@ EFFORT_COLS = {
     COMP_FE: COL_EFFORT_FE,
     COMP_PO: COL_EFFORT_PO
 }
+
+# Milestones tab columns
+COL_MS_INDICATOR = "indicator"
+COL_MS_DATE = "date"
+COL_MS_TARGET = "target"  # string — can be percentage or free text

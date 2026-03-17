@@ -1,6 +1,7 @@
 import plotly.graph_objects as go
 import pandas as pd
 from data_models import *
+from roadmap_engine import date_to_sprint
 
 # Color palette for indicators
 INDICATOR_COLORS = {
@@ -8,6 +9,7 @@ INDICATOR_COLORS = {
     "Aderência": "#2ecc71",
     "Prontidão": "#e67e22",
     "Should Cost": "#9b59b6",
+    "Produtização": "#e74c3c",
 }
 
 # Color palette for competencies (used in unified load chart)
@@ -17,6 +19,31 @@ COMPETENCY_COLORS = {
     COMP_FE: "#2ecc71",
     COMP_PO: "#f39c12",
 }
+
+
+def _build_sprint_labels(sprints_df, sprint_numbers):
+    """
+    Builds a dict mapping sprint number -> display label like 'S1\n03/03'.
+    Falls back to 'S{n}' if no date is available.
+    """
+    date_lookup = {}
+    if sprints_df is not None and not sprints_df.empty:
+        for _, row in sprints_df.iterrows():
+            try:
+                s_num = int(row[COL_SPR_NUMBER])
+                start = pd.to_datetime(row[COL_SPR_START_DATE])
+                date_lookup[s_num] = start.strftime("%d/%m")
+            except Exception:
+                pass
+
+    labels = {}
+    for s in sprint_numbers:
+        if s in date_lookup:
+            labels[s] = f"S{s}<br>{date_lookup[s]}"
+        else:
+            labels[s] = f"S{s}"
+    return labels
+
 
 def _get_overloaded_sprints(sprint_load_df, capacity_per_sprint):
     """Returns a set of sprint numbers where any competency exceeds capacity."""
@@ -34,12 +61,14 @@ def _get_overloaded_sprints(sprint_load_df, capacity_per_sprint):
                 break
     return overloaded
 
-def create_gantt_chart(roadmap_df, sprint_load_df=None, capacity_per_sprint=None):
+def create_gantt_chart(roadmap_df, sprint_load_df=None, capacity_per_sprint=None, sprints_df=None, milestones_df=None):
     """
     Creates a Gantt chart with indicator-based swim lanes.
     Y-axis shows Indicator names (one per group, vertically centered).
-    Bars show Epic/Feature names inside.
+    Bars show Epic/Feature names inside (clipped to fit).
     Overloaded sprints are highlighted with red translucent vertical bands.
+    X-axis shows sprint number + start date.
+    Hover shows per-competency effort breakdown.
     """
     if roadmap_df.empty:
         return None
@@ -78,6 +107,11 @@ def create_gantt_chart(roadmap_df, sprint_load_df=None, capacity_per_sprint=None
     
     fig = go.Figure()
     
+    # Build sprint labels for x-axis
+    max_sprint = int(df[COL_END_SPRINT].max()) + 1
+    all_sprints = list(range(1, max_sprint + 1))
+    sprint_labels = _build_sprint_labels(sprints_df, all_sprints)
+    
     # Add bars grouped by indicator
     bar_idx = 0
     for ind in indicators_present:
@@ -90,6 +124,13 @@ def create_gantt_chart(roadmap_df, sprint_load_df=None, capacity_per_sprint=None
             border_width = 3 if is_manual else 1
             
             display_name = row[COL_FEATURE_NAME]
+            
+            # Build effort breakdown for hover
+            de_effort = row.get(COL_EFFORT_DE, 0) or 0
+            ds_effort = row.get(COL_EFFORT_DS, 0) or 0
+            fe_effort = row.get(COL_EFFORT_FE, 0) or 0
+            po_effort = row.get(COL_EFFORT_PO, 0) or 0
+            effort_line = f"DE: {de_effort:.0f}h | DS: {ds_effort:.0f}h | FE: {fe_effort:.0f}h | PO: {po_effort:.0f}h"
             
             fig.add_trace(go.Bar(
                 name=display_name,
@@ -104,14 +145,17 @@ def create_gantt_chart(roadmap_df, sprint_load_df=None, capacity_per_sprint=None
                 text=display_name,
                 textposition='inside',
                 insidetextanchor='middle',
-                textfont=dict(color='white', size=12),
+                cliponaxis=True,
+                textfont=dict(color='white', size=11),
                 hovertemplate=(
                     f"<b>{display_name}</b><br>"
-                    f"Indicator: {ind}<br>"
+                    f"Indicador: {ind}<br>"
                     f"Sprint: {row[COL_START_SPRINT]} → {row[COL_END_SPRINT]}<br>"
-                    f"Duration: {row[COL_SPRINTS_REQUIRED]} sprints<br>"
-                    f"Score: {row[COL_SCORE]:.2f}"
-                    + ("<br><b>⚠ Manual Start</b>" if is_manual else "")
+                    f"Duração: {row[COL_SPRINTS_REQUIRED]} sprints<br>"
+                    f"Score: {row[COL_SCORE]:.2f}<br>"
+                    f"───────────<br>"
+                    f"{effort_line}"
+                    + ("<br><b>⚠ Início Manual</b>" if is_manual else "")
                     + "<extra></extra>"
                 ),
                 showlegend=False
@@ -137,16 +181,60 @@ def create_gantt_chart(roadmap_df, sprint_load_df=None, capacity_per_sprint=None
                 annotation_font_color="red"
             )
     
-    max_sprint = int(df[COL_END_SPRINT].max()) + 1
+    # Add milestone star markers
+    if milestones_df is not None and not milestones_df.empty and sprints_df is not None:
+        for _, ms_row in milestones_df.iterrows():
+            ms_indicator = str(ms_row.get(COL_MS_INDICATOR, "")).strip()
+            ms_date = ms_row.get(COL_MS_DATE)
+            ms_target = str(ms_row.get(COL_MS_TARGET, ""))
+            
+            if not ms_indicator or pd.isna(ms_date):
+                continue
+            
+            sprint_num = date_to_sprint(ms_date, sprints_df)
+            if sprint_num is None:
+                continue
+            
+            y_pos = indicator_mid_positions.get(ms_indicator)
+            if y_pos is None:
+                continue
+            
+            ms_date_str = pd.to_datetime(ms_date).strftime("%d/%m/%Y")
+            
+            fig.add_trace(go.Scatter(
+                x=[sprint_num],
+                y=[y_pos],
+                mode='markers+text',
+                marker=dict(
+                    symbol='star',
+                    size=18,
+                    color='gold',
+                    line=dict(color='darkorange', width=1.5)
+                ),
+                text=[ms_target],
+                textposition='top center',
+                textfont=dict(color='darkorange', size=11, family='Arial Black'),
+                hovertemplate=(
+                    f"<b>🎯 Milestone</b><br>"
+                    f"Indicador: {ms_indicator}<br>"
+                    f"Data: {ms_date_str}<br>"
+                    f"Meta: {ms_target}"
+                    "<extra></extra>"
+                ),
+                showlegend=False
+            ))
+    
     total_items = bar_idx
     
     fig.update_layout(
         barmode='stack',
         showlegend=False,
-        title="Product Roadmap",
+        title="Roadmap do Produto",
         xaxis=dict(
             title="Sprint",
-            dtick=1,
+            tickmode='array',
+            tickvals=all_sprints,
+            ticktext=[sprint_labels[s] for s in all_sprints],
             range=[0.5, max_sprint + 0.5]
         ),
         yaxis=dict(
@@ -163,18 +251,21 @@ def create_gantt_chart(roadmap_df, sprint_load_df=None, capacity_per_sprint=None
     
     return fig
 
-def create_unified_load_chart(sprint_load_df, capacity_per_sprint, competencies):
+def create_unified_load_chart(sprint_load_df, capacity_per_sprint, competencies, sprints_df=None):
     """
     Creates a single grouped bar chart showing demand vs capacity for all competencies.
     - Filled bars for demand
     - Dashed-outline bars for capacity
     - Distinct colors per competency
     - Bottleneck markers where demand > capacity
+    - X-axis shows sprint number + start date
     """
     if sprint_load_df is None or sprint_load_df.empty:
         return None
     
     sprints = sprint_load_df[COL_SPRINT].tolist()
+    sprint_labels = _build_sprint_labels(sprints_df, [int(s) for s in sprints])
+    x_labels = [sprint_labels[int(s)] for s in sprints]
     
     fig = go.Figure()
     
@@ -190,10 +281,10 @@ def create_unified_load_chart(sprint_load_df, capacity_per_sprint, competencies)
         
         # Capacity bars (behind, full width, dashed/light)
         fig.add_trace(go.Bar(
-            x=sprints,
+            x=x_labels,
             y=capacities,
-            name=f"{short_label} Capacity",
-            offsetgroup=comp, # Group by competency
+            name=f"{short_label} Capacidade",
+            offsetgroup=comp,
             marker=dict(
                 color="rgba(0,0,0,0)",
                 line=dict(color=color, width=2),
@@ -205,10 +296,10 @@ def create_unified_load_chart(sprint_load_df, capacity_per_sprint, competencies)
         
         # Demand bars (in front, filled)
         fig.add_trace(go.Bar(
-            x=sprints,
+            x=x_labels,
             y=demands,
-            name=f"{short_label} Demand",
-            offsetgroup=comp, # Superimpose on capacity
+            name=f"{short_label} Demanda",
+            offsetgroup=comp,
             marker=dict(color=color, opacity=0.85),
             legendgroup=comp,
             showlegend=False,
@@ -217,9 +308,9 @@ def create_unified_load_chart(sprint_load_df, capacity_per_sprint, competencies)
         # Bottleneck markers
         bottleneck_x = []
         bottleneck_y = []
-        for s, d, c in zip(sprints, demands, capacities):
+        for lbl, d, c in zip(x_labels, demands, capacities):
             if d > c and c > 0:
-                bottleneck_x.append(s)
+                bottleneck_x.append(lbl)
                 bottleneck_y.append(d)
         
         if bottleneck_x:
@@ -234,7 +325,7 @@ def create_unified_load_chart(sprint_load_df, capacity_per_sprint, competencies)
                 textfont=dict(color='red', size=10),
                 legendgroup=comp,
                 showlegend=False,
-                offsetgroup=comp, # Keep aligned
+                offsetgroup=comp,
             ))
 
     # Add dummy traces for simplified legend
@@ -246,21 +337,21 @@ def create_unified_load_chart(sprint_load_df, capacity_per_sprint, competencies)
             name=comp,
             marker=dict(color=color),
             legendgroup="colors",
-            legendgrouptitle_text="Competencies" if comp == competencies[0] else None
+            legendgrouptitle_text="Competências" if comp == competencies[0] else None
         ))
         
     # 2. Demand vs Capacity Styles
     style_color = "rgba(100, 100, 100, 0.8)"
     fig.add_trace(go.Bar(
         x=[None], y=[None],
-        name="Demand",
+        name="Demanda",
         marker=dict(color=style_color),
         legendgroup="styles",
-        legendgrouptitle_text="Type"
+        legendgrouptitle_text="Tipo"
     ))
     fig.add_trace(go.Bar(
         x=[None], y=[None],
-        name="Capacity",
+        name="Capacidade",
         marker=dict(
             color="rgba(0,0,0,0)",
             line=dict(color=style_color, width=2),
@@ -270,10 +361,10 @@ def create_unified_load_chart(sprint_load_df, capacity_per_sprint, competencies)
     ))
     
     fig.update_layout(
-        barmode='group', # Groups the different 'offsetgroup's side-by-side
-        title="All Competencies: Capacity vs Demand",
-        xaxis=dict(title="Sprint", dtick=1),
-        yaxis=dict(title="Hours"),
+        barmode='group',
+        title="Todas as Competências: Capacidade vs Demanda",
+        xaxis=dict(title="Sprint"),
+        yaxis=dict(title="Horas"),
         template="plotly_white",
         legend=dict(
             orientation="h",
