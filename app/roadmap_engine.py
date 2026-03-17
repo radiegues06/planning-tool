@@ -33,8 +33,11 @@ def aggregate_by_epic(backlog_df):
                 COL_PRIORITY: int(group[COL_PRIORITY].min()),
                 COL_INDICATOR: indicator,
                 COL_EPIC: epic,
-                COL_BUSINESS_VALUE: group[COL_BUSINESS_VALUE].sum(),
+                COL_SCORE: group[COL_SCORE].mean() if COL_SCORE in group.columns else 0.0,
             }
+            if COL_BUSINESS_VALUE in group.columns:
+                row[COL_BUSINESS_VALUE] = group[COL_BUSINESS_VALUE].sum()
+                
             for eff_col in [COL_EFFORT_DE, COL_EFFORT_DS, COL_EFFORT_FE, COL_EFFORT_PO]:
                 row[eff_col] = group[eff_col].fillna(0).sum()
             
