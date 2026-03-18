@@ -27,12 +27,18 @@ def aggregate_by_epic(backlog_df):
     epic_rows = []
     if not has_epic.empty:
         for (indicator, epic), group in has_epic.groupby([COL_INDICATOR, COL_EPIC]):
+            epic_features_list = group[COL_FEATURE_NAME].dropna().astype(str).tolist()
+            epic_features_str = "<br>- ".join(epic_features_list) if epic_features_list else ""
+            if epic_features_str:
+                epic_features_str = "- " + epic_features_str
+
             row = {
                 COL_FEATURE_ID: f"EPIC-{epic}",
                 COL_FEATURE_NAME: epic,
                 COL_PRIORITY: int(group[COL_PRIORITY].min()),
                 COL_INDICATOR: indicator,
                 COL_EPIC: epic,
+                COL_EPIC_FEATURES: epic_features_str,
                 COL_SCORE: group[COL_SCORE].mean() if COL_SCORE in group.columns else 0.0,
             }
             if COL_BUSINESS_VALUE in group.columns:
@@ -55,6 +61,7 @@ def aggregate_by_epic(backlog_df):
     # For no-epic features, use feature_name as the display name
     if not no_epic.empty:
         no_epic = no_epic.copy()
+        no_epic[COL_EPIC_FEATURES] = "- " + no_epic[COL_FEATURE_NAME].astype(str)
     
     # Combine
     result = pd.concat([epic_df, no_epic], ignore_index=True) if not epic_df.empty else no_epic.copy()

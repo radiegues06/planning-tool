@@ -20,6 +20,7 @@ COL_FEATURE_ID = "feature_id"
 COL_FEATURE_NAME = "feature_name"
 COL_INDICATOR = "indicator"
 COL_EPIC = "epic"
+COL_EPIC_FEATURES = "epic_features"
 COL_BUSINESS_VALUE = "business_value"
 
 INDICATORS = ["Conformidade", "Aderência", "Prontidão", "Should Cost", "Produtização"]

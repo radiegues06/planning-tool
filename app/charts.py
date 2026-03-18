@@ -143,7 +143,9 @@ def create_gantt_chart(roadmap_df, sprint_load_df=None, capacity_per_sprint=None
             ds_effort = row.get(COL_EFFORT_DS, 0) or 0
             fe_effort = row.get(COL_EFFORT_FE, 0) or 0
             po_effort = row.get(COL_EFFORT_PO, 0) or 0
-            effort_line = f"DE: {de_effort:.0f}h | DS: {ds_effort:.0f}h | FE: {fe_effort:.0f}h | PO: {po_effort:.0f}h"
+            total_effort = row.get(COL_TOTAL_EFFORT, 0) or 0
+            effort_line = f"Esforço total: {total_effort:.0f}h<br>" + \
+                f"DE: {de_effort:.0f}h | DS: {ds_effort:.0f}h | FE: {fe_effort:.0f}h | PO: {po_effort:.0f}h<br>"
             
             fig.add_trace(go.Bar(
                 name=display_name,
@@ -162,12 +164,12 @@ def create_gantt_chart(roadmap_df, sprint_load_df=None, capacity_per_sprint=None
                 textfont=dict(color='white', size=11),
                 hovertemplate=(
                     f"<b>{display_name}</b><br>"
-                    f"Indicador: {ind}<br>"
-                    f"Sprint: {row[COL_START_SPRINT]} → {row[COL_END_SPRINT]}<br>"
-                    f"Duração: {row[COL_SPRINTS_REQUIRED]} sprints<br>"
-                    f"Score: {row[COL_SCORE]:.2f}<br>"
+                    f"Score: {row[COL_SCORE]:.1f}<br>"
+                    f"Prioridade: {row[COL_PRIORITY]}<br>"
                     f"───────────<br>"
                     f"{effort_line}"
+                    f"───────────<br>"
+                    f"Features:<br>{row.get(COL_EPIC_FEATURES, row.get(COL_FEATURE_NAME, ''))}<br>"
                     + ("<br><b>⚠ Início Manual</b>" if is_manual else "")
                     + "<extra></extra>"
                 ),

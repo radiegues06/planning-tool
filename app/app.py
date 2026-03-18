@@ -31,68 +31,55 @@ st.markdown("Cálculo automático de capacidade, priorização de backlog e gera
 DATA_FILE = "planning_data.xlsx"
 
 def load_data():
-    if os.path.exists(DATA_FILE):
-        with pd.ExcelFile(DATA_FILE) as xls:
-            team_df = pd.read_excel(xls, 'Team')
-            # remove backlog_df from here
-            vacations_df = pd.read_excel(xls, 'Vacations')
-            sprints_df = pd.read_excel(xls, 'Sprints')
-            milestones_df = pd.read_excel(xls, 'Milestones')
-            
-        if os.path.exists("Backlog_Roadmap_2026.xlsx"):
-            backlog_df = pd.read_excel("Backlog_Roadmap_2026.xlsx", "Backlog")
-        else:
-            backlog_df = pd.DataFrame()
-            
-        # Map Portuguese columns to internal references
-        column_mapping = {
-            "Features": COL_FEATURE_NAME,
-            "Indicadores": COL_INDICATOR,
-            "Épicos": COL_EPIC,
-            "Esforço DE": COL_EFFORT_DE,
-            "Esforço DS": COL_EFFORT_DS,
-            "Esforço FE": COL_EFFORT_FE,
-            "Esforço PO": COL_EFFORT_PO,
-            "Score": COL_SCORE,
-            "Priorização": COL_PRIORITY
-        }
-        backlog_df = backlog_df.rename(columns=column_mapping)
+    with pd.ExcelFile(DATA_FILE) as xls:
+        team_df = pd.read_excel(xls, 'Team')
+        vacations_df = pd.read_excel(xls, 'Vacations')
+        sprints_df = pd.read_excel(xls, 'Sprints')
+        milestones_df = pd.read_excel(xls, 'Milestones')
+    
+    backlog_df = pd.read_excel("Backlog_Roadmap_2026.xlsx", "Backlog")
         
-        if COL_FEATURE_ID not in backlog_df.columns and not backlog_df.empty:
-            backlog_df[COL_FEATURE_ID] = [f"F{i}" for i in range(1, len(backlog_df)+1)]
-            
-        # Fill NaN and fix types to avoid Streamlit errors
-        if COL_EPIC in backlog_df.columns:
-            backlog_df[COL_EPIC] = backlog_df[COL_EPIC].fillna("").astype(str)
-        if COL_INDICATOR in backlog_df.columns:
-            backlog_df[COL_INDICATOR] = backlog_df[COL_INDICATOR].fillna(INDICATORS[0]).astype(str).str.strip()
-        if COL_PRIORITY not in backlog_df.columns:
-            backlog_df[COL_PRIORITY] = 1
-        if COL_MANUAL_START not in backlog_df.columns:
-            backlog_df[COL_MANUAL_START] = None
-        
-        # Fill effort nan
-        effort_cols_to_fill = [COL_EFFORT_DE, COL_EFFORT_DS, COL_EFFORT_FE, COL_EFFORT_PO]
-        for c in effort_cols_to_fill:
-            if c in backlog_df.columns:
-                backlog_df[c] = backlog_df[c].fillna(0).astype('float64')
-        
-        # Vacations column types
-        vacations_df[COL_VAC_PERSON] = vacations_df[COL_VAC_PERSON].fillna("").astype(str)
-        
-        # Milestones types
-        milestones_df[COL_MS_INDICATOR] = milestones_df[COL_MS_INDICATOR].fillna("").astype(str).str.strip()
-        milestones_df[COL_MS_TARGET] = milestones_df[COL_MS_TARGET].fillna("").astype(str)
-        
-        return team_df, backlog_df, vacations_df, sprints_df, milestones_df
-    else:
-        # Fallback to defaults
-        team_df = pd.DataFrame(columns=[COL_PERSON, COL_COMPETENCY, COL_WEEKLY_HOURS, COL_ALLOCATION_PCT])
-        backlog_df = pd.DataFrame(columns=[COL_FEATURE_ID, COL_FEATURE_NAME, COL_PRIORITY, COL_INDICATOR, COL_EPIC, COL_SCORE, COL_EFFORT_DE, COL_EFFORT_DS, COL_EFFORT_FE, COL_EFFORT_PO, COL_MANUAL_START])
-        vacations_df = pd.DataFrame(columns=[COL_VAC_PERSON, COL_VAC_START_DATE, COL_VAC_END_DATE])
-        sprints_df = pd.DataFrame(columns=[COL_SPR_NUMBER, COL_SPR_START_DATE, COL_SPR_END_DATE])
-        milestones_df = pd.DataFrame(columns=[COL_MS_INDICATOR, COL_MS_DATE, COL_MS_TARGET])
-        return team_df, backlog_df, vacations_df, sprints_df, milestones_df
+    # Map Portuguese columns to internal references
+    column_mapping = {
+        "Features": COL_FEATURE_NAME,
+        "Indicadores": COL_INDICATOR,
+        "Épicos": COL_EPIC,
+        "Esforço DE": COL_EFFORT_DE,
+        "Esforço DS": COL_EFFORT_DS,
+        "Esforço FE": COL_EFFORT_FE,
+        "Esforço PO": COL_EFFORT_PO,
+        "Score": COL_SCORE,
+        "Priorização": COL_PRIORITY
+    }
+    backlog_df = backlog_df.rename(columns=column_mapping)
+    
+    if COL_FEATURE_ID not in backlog_df.columns and not backlog_df.empty:
+        backlog_df[COL_FEATURE_ID] = [f"F{i}" for i in range(1, len(backlog_df)+1)]
+
+    # Fill NaN and fix types to avoid Streamlit errors
+    if COL_EPIC in backlog_df.columns:
+        backlog_df[COL_EPIC] = backlog_df[COL_EPIC].fillna("").astype(str)
+    if COL_INDICATOR in backlog_df.columns:
+        backlog_df[COL_INDICATOR] = backlog_df[COL_INDICATOR].fillna(INDICATORS[0]).astype(str).str.strip()
+    if COL_PRIORITY not in backlog_df.columns:
+        backlog_df[COL_PRIORITY] = 1
+    if COL_MANUAL_START not in backlog_df.columns:
+        backlog_df[COL_MANUAL_START] = None
+    
+    # Fill effort nan
+    effort_cols_to_fill = [COL_EFFORT_DE, COL_EFFORT_DS, COL_EFFORT_FE, COL_EFFORT_PO]
+    for c in effort_cols_to_fill:
+        if c in backlog_df.columns:
+            backlog_df[c] = backlog_df[c].fillna(0).astype('float64')
+    
+    # Vacations column types
+    vacations_df[COL_VAC_PERSON] = vacations_df[COL_VAC_PERSON].fillna("").astype(str)
+    
+    # Milestones types
+    milestones_df[COL_MS_INDICATOR] = milestones_df[COL_MS_INDICATOR].fillna("").astype(str).str.strip()
+    milestones_df[COL_MS_TARGET] = milestones_df[COL_MS_TARGET].fillna("").astype(str)
+    
+    return team_df, backlog_df, vacations_df, sprints_df, milestones_df
 
 if 'team_df' not in st.session_state:
     t_df, b_df, v_df, s_df, m_df = load_data()
