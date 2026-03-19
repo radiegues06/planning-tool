@@ -61,7 +61,7 @@ def _get_overloaded_sprints(sprint_load_df, capacity_per_sprint):
                 break
     return overloaded
 
-def create_gantt_chart(roadmap_df, sprint_load_df=None, capacity_per_sprint=None, sprints_df=None, milestones_df=None, show_alerts=True):
+def create_gantt_chart(roadmap_df, sprint_load_df=None, capacity_per_sprint=None, sprints_df=None, milestones_df=None, show_alerts=False):
     """
     Creates a Gantt chart with indicator-based swim lanes.
     Y-axis shows Indicator names (one per group, vertically centered).

@@ -120,22 +120,24 @@ if not backlog_df.empty:
     with roadmap_container:
         st.subheader("Roadmap Automático")
         if not roadmap_df.empty:
-            # Add filters for Roadmap
-            r_col1, r_col2 = st.columns(2)
-            with r_col1:
-                r_ind_filter = st.multiselect("Filtrar Indicador do Roadmap", roadmap_df[COL_INDICATOR].unique(), default=roadmap_df[COL_INDICATOR].unique(), key="roadmap_ind_filter")
-            with r_col2:
-                st.write("") # Vertical alignment
-                st.write("") # Vertical alignment
-                show_capacity_alerts = st.toggle("Exibir Alertas de Capacidade", value=False, key="roadmap_capacity_toggle")
+            # # Add filters for Roadmap
+            # r_col1, r_col2 = st.columns(2)
+            # with r_col1:
+            #     r_ind_filter = st.multiselect("Filtrar Indicador do Roadmap", roadmap_df[COL_INDICATOR].unique(), default=roadmap_df[COL_INDICATOR].unique(), key="roadmap_ind_filter")
+            # with r_col2:
+            #     st.write("") # Vertical alignment
+            #     st.write("") # Vertical alignment
+            #     show_capacity_alerts = st.toggle("Exibir Alertas de Capacidade", value=False, key="roadmap_capacity_toggle")
             
-            filtered_roadmap_df = roadmap_df[roadmap_df[COL_INDICATOR].isin(r_ind_filter)]
+            # filtered_roadmap_df = roadmap_df[roadmap_df[COL_INDICATOR].isin(r_ind_filter)]
+
+            filtered_roadmap_df = roadmap_df.copy()
             
             if not filtered_roadmap_df.empty:
                 # Calculate sprint load for capacity overlay
                 sprint_load_df = calculate_sprint_load(roadmap_df, roadmap_df)
                 
-                gantt = create_gantt_chart(filtered_roadmap_df, sprint_load_df, capacity_per_sprint, st.session_state.sprints_df, milestones_df=st.session_state.milestones_df, show_alerts=show_capacity_alerts)
+                gantt = create_gantt_chart(filtered_roadmap_df, sprint_load_df, capacity_per_sprint, st.session_state.sprints_df, milestones_df=st.session_state.milestones_df, show_alerts=False)
                 if gantt:
                     st.plotly_chart(gantt, use_container_width=True)
             
