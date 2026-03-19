@@ -59,6 +59,8 @@ def load_data():
     # Fill NaN and fix types to avoid Streamlit errors
     if COL_EPIC in backlog_df.columns:
         backlog_df[COL_EPIC] = backlog_df[COL_EPIC].fillna("").astype(str)
+        # Filter out features with "N/A", "NA", "NAN" or entirely blank ("") epic
+        backlog_df = backlog_df[~backlog_df[COL_EPIC].str.strip().str.upper().isin(["N/A", "NA", "NAN", ""])]
     if COL_INDICATOR in backlog_df.columns:
         backlog_df[COL_INDICATOR] = backlog_df[COL_INDICATOR].fillna(INDICATORS[0]).astype(str).str.strip()
     if COL_PRIORITY not in backlog_df.columns:

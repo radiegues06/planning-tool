@@ -20,9 +20,8 @@ def aggregate_by_epic(backlog_df):
         df[COL_EPIC] = ""
     df[COL_EPIC] = df[COL_EPIC].fillna("").astype(str).str.strip()
     
-    # Split: features with an epic vs without
+    # Filter to only features with an epic
     has_epic = df[df[COL_EPIC] != ""]
-    no_epic = df[df[COL_EPIC] == ""]
     
     epic_rows = []
     if not has_epic.empty:
@@ -56,17 +55,10 @@ def aggregate_by_epic(backlog_df):
             
             epic_rows.append(row)
     
-    epic_df = pd.DataFrame(epic_rows) if epic_rows else pd.DataFrame()
+    epic_df = pd.DataFrame(epic_rows) if epic_rows else pd.DataFrame(columns=df.columns)
     
-    # For no-epic features, use feature_name as the display name
-    if not no_epic.empty:
-        no_epic = no_epic.copy()
-        no_epic[COL_EPIC_FEATURES] = "- " + no_epic[COL_FEATURE_NAME].astype(str)
-    
-    # Combine
-    result = pd.concat([epic_df, no_epic], ignore_index=True) if not epic_df.empty else no_epic.copy()
-    
-    return result
+    # Features without an Epic are excluded from scheduling completely
+    return epic_df
 
 def calculate_feature_durations(backlog_df, capacity_per_sprint):
     """
